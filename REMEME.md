@@ -1,8 +1,9 @@
 # feature
+
 - rest api
 - websocket
 - upload
-- pagination 
+- pagination
 - intelligence mock
 - json
-- serach
+- search
