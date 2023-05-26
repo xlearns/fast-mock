@@ -1,24 +1,21 @@
 #!/usr/bin/env node
 
 const path = require("path");
-
+const chalk = require('chalk');
 const fs = require("fs");
-
 const express = require("express");
-
+const expressWs = require('express-ws')
 const app = express();
-
 const root = process.cwd();
-
 const configPath = path.resolve(root, "fn.config.js");
-
 const apiPath = path.resolve(root, "fn.config.api.js");
-
 const bodyParser = require("body-parser");
 
 let dataStore = {}
 
 app.use(bodyParser.urlencoded({ extended: true }));
+
+expressWs(app);
 
 const defaultConfig = {
   port: 7001,
@@ -46,14 +43,14 @@ function init(first) {
       start({ api, first });
     }
   } else {
-    console.error("Please provide the fn.config.api.js file.");
+    console.log(chalk.red("Please provide the fn.config.api.js file."));
   }
 }
 
 init(true);
 
 fs.watch(apiPath, () => {
-  console.log(`The API file ${apiPath} has changed, reloading..`);
+  console.log(chalk.blue(`The API file ${apiPath} has changed, reloading..`));
   delete require.cache[require.resolve(apiPath)];
   init();
 });
@@ -87,7 +84,7 @@ function server(conf) {
 
   if (!first) return
   app.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
+    console.log(chalk.blue(`Server listening at http://localhost:${port}`));
   });
 }
 
@@ -132,6 +129,7 @@ function createApi(key, val) {
       createRest({ key, url, data, pagination });
       break;
     case "ws":
+      createWs({ key, url, data, pagination });
       break;
     case "download":
       break;
@@ -160,6 +158,18 @@ function paginAction(data, { page, limit }, config) {
     }
   }
   return res;
+}
+
+function createWs({ key, url, data, pagination }) {
+  dataStore[key] = data;
+  app.ws('/websocket', (ws, req) => {
+    ws.send('Welcome to the WebSocket server!');
+
+    ws.on('message', (msg) => {
+      console.log(`Received message: ${msg}`);
+      ws.send(msg);
+    });
+  });
 }
 
 function createRest({ key, url, data, pagination }) {
