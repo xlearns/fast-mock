@@ -16,7 +16,7 @@ const apiPath = path.resolve(root, "fn.config.api.js");
 
 const bodyParser = require("body-parser");
 
-let dataStore;
+let dataStore = {}
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -36,24 +36,24 @@ const defineApi = {
   },
 };
 
-function init() {
+function init(first) {
   if (fs.existsSync(apiPath)) {
     const api = require(apiPath);
     if (fs.existsSync(configPath)) {
       const config = require(configPath);
-      start({ config, api });
+      start({ config, api, first });
     } else {
-      start({ api });
+      start({ api, first });
     }
   } else {
-    console.error("请提供fn.config.api.js文件");
+    console.error("Please provide the fn.config.api.js file.");
   }
 }
 
-init();
+init(true);
 
 fs.watch(apiPath, () => {
-  console.log(`API文件 ${apiPath} 已变化，正在重新加载...`);
+  console.log(`The API file ${apiPath} has changed, reloading..`);
   delete require.cache[require.resolve(apiPath)];
   init();
 });
@@ -70,13 +70,13 @@ function throttle(func, wait) {
   };
 }
 
-function start({ config, api }) {
+function start({ config, api, first }) {
   const _config = Object.assign({}, defaultConfig, config);
-  server({ config: _config, api });
+  server({ config: _config, api, first });
 }
 
 function server(conf) {
-  const { config, api } = conf;
+  const { config, api, first } = conf;
   const { port } = config;
 
   app.use(express.json());
@@ -85,6 +85,7 @@ function server(conf) {
     createApi(key, val);
   });
 
+  if (!first) return
   app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);
   });
@@ -162,12 +163,12 @@ function paginAction(data, { page, limit }, config) {
 }
 
 function createRest({ key, url, data, pagination }) {
-  dataStore = data;
+  dataStore[key] = data;
   app.get(url, (req, res) => {
     const { pageKey, limitation } = pagination;
     const page = req.query[pageKey] || 1;
     const limit = req.query[limitation] || 10;
-    const msg = paginAction(dataStore, { page, limit }, pagination);
+    const msg = paginAction(dataStore[key], { page, limit }, pagination);
     res.set("Cache-Control", "no-store");
     res.send(msg);
   });
@@ -177,15 +178,15 @@ function createRest({ key, url, data, pagination }) {
     const { body, query } = req;
     const page = body[pageKey] || query[pageKey] || 1;
     const limit = body[limitation] || query[limitation] || 10;
-    res.send(paginAction(dataStore, { page, limit }, pagination));
+    res.send(paginAction(dataStore[key], { page, limit }, pagination));
   });
 
   app.put(url, (req, res) => {
-    res.send(dataStore);
+    res.send(dataStore[key]);
   });
 
   app.delete(url, (req, res) => {
-    res.send(dataStore);
+    res.send(dataStore[key]);
   });
 
   // app.get(`url/:id`, (req, res) => {
