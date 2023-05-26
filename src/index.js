@@ -192,10 +192,12 @@ function createRest({ key, url, data, pagination }) {
   });
 
   app.put(url, (req, res) => {
+    //change json
     res.send(dataStore[key]);
   });
 
   app.delete(url, (req, res) => {
+    // delete json
     res.send(dataStore[key]);
   });
 

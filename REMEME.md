@@ -1,9 +1,6 @@
 # feature
 
-- rest api
 - websocket
 - upload
-- pagination
 - intelligence mock
-- json
-- search
+- The delete and put operations will synchronize the local JSON data in real time
