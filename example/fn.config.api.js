@@ -1,7 +1,11 @@
 module.exports = {
   "test": 'hello world',
-  "test/t": {
-    code: 200
+  "websocket": {
+    __data: {
+      code: 200,
+      msg: 'websocket 测试'
+    },
+    type: 'ws'
   },
   "/api/list": {
     code: 200,
@@ -18,7 +22,7 @@ module.exports = {
     __data: {
       status: 200,
       msg: "ok",
-      data: Array.from({ length: 100 }).map((item, index) => {
+      list: Array.from({ length: 100 }).map((item, index) => {
         return {
           code: 200,
           data: index,

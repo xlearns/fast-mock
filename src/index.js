@@ -7,11 +7,18 @@ const express = require("express");
 const expressWs = require('express-ws')
 const app = express();
 const root = process.cwd();
-const configPath = path.resolve(root, "fn.config.js");
-const apiPath = path.resolve(root, "fn.config.api.js");
+
+const configPath = path.resolve(root, `${isDev() && 'example/'}fn.config.js`);
+const apiPath = path.resolve(root, `${isDev() && 'example/'}fn.config.api.js`);
 const bodyParser = require("body-parser");
+const cors = require('cors');
 
 let dataStore = {}
+let wstimer = null
+
+app.use(cors({
+  origin: '*'
+}));
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -54,6 +61,11 @@ fs.watch(apiPath, () => {
   delete require.cache[require.resolve(apiPath)];
   init();
 });
+
+
+function isDev() {
+  return process.env.NODE_ENV === 'development'
+}
 
 function throttle(func, wait) {
   let timer = null;
@@ -131,6 +143,8 @@ function createApi(key, val) {
     case "ws":
       createWs({ key, url, data, pagination });
       break;
+    case "sse":
+      break;
     case "download":
       break;
   }
@@ -162,13 +176,16 @@ function paginAction(data, { page, limit }, config) {
 
 function createWs({ key, url, data, pagination }) {
   dataStore[key] = data;
+  clearInterval(wstimer)
   app.ws('/websocket', (ws, req) => {
-    ws.send('Welcome to the WebSocket server!');
-
+    wstimer = setInterval(() => {
+      ws.send(JSON.stringify(dataStore[key]));
+    }, 3000);
     ws.on('message', (msg) => {
       console.log(`Received message: ${msg}`);
       ws.send(msg);
     });
+    ws.send(JSON.stringify(dataStore[key]));
   });
 }
 
@@ -192,12 +209,10 @@ function createRest({ key, url, data, pagination }) {
   });
 
   app.put(url, (req, res) => {
-    //change json
     res.send(dataStore[key]);
   });
 
   app.delete(url, (req, res) => {
-    // delete json
     res.send(dataStore[key]);
   });
 

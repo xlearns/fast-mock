@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Demo</title>
+</head>
+<body>
+<div style="display:flex;gap:10px" id="box">
+  <button  attr="1">get</button>
+  <button  attr="2">post</button>
+  <button  attr="3">delete</button>
+  <button  attr="4">put</button>
+</div>
+<div id="root"></div>
+<script>
+    const socket = new WebSocket('ws://localhost:7001/websocket');
+    socket.addEventListener('message', function (event) {
+        console.log('接收到服务器消息：' + event.data);
+        document.querySelector('#root').innerHTML += `<p>${event.data}</p>`
+    });
+
+    document.querySelector('#box').addEventListener('click',(e)=>{
+      if(e.target.getAttribute('attr')){
+        
+      }
+    })
+</script>
+</body>
+</html>
