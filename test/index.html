@@ -1,29 +1,88 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>WebSocket Demo</title>
-</head>
-<body>
-<div style="display:flex;gap:10px" id="box">
-  <button  attr="1">get</button>
-  <button  attr="2">post</button>
-  <button  attr="3">delete</button>
-  <button  attr="4">put</button>
-</div>
-<div id="root"></div>
-<script>
-    const socket = new WebSocket('ws://localhost:7001/websocket');
-    socket.addEventListener('message', function (event) {
-        console.log('接收到服务器消息：' + event.data);
-        document.querySelector('#root').innerHTML += `<p>${event.data}</p>`
-    });
+  </head>
+  <body>
+    <div style="display: flex; gap: 10px" id="box">
+      <button attr="1">get</button>
+      <button attr="2">post</button>
+      <button attr="3">delete</button>
+      <button attr="4">put</button>
+      <button attr="5">download</button>
+    </div>
+    <div id="root"></div>
+    <script>
+      async function http(url, method = "GET", data = null, headers = {}) {
+        try {
+          const options = {
+            method,
+            headers: {
+              ...headers,
+              "Content-Type": "application/json",
+            },
+          };
 
-    document.querySelector('#box').addEventListener('click',(e)=>{
-      if(e.target.getAttribute('attr')){
-        
+          let requestUrl = url;
+          if (method === "GET" && data) {
+            const queryString = Object.entries(data)
+              .map(
+                ([key, value]) =>
+                  `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+              )
+              .join("&");
+            requestUrl += `?${queryString}`;
+          } else if (data) {
+            options.body = JSON.stringify(data);
+          }
+
+          const response = await fetch(requestUrl, options);
+
+          if (response.headers.get("content-type").includes("text/html")) {
+            return await response.text();
+          } else if (
+            response.headers.get("content-type") === "application/octet-stream"
+          ) {
+            return await response.arrayBuffer();
+          } else {
+            const responseData = await response.json();
+            return responseData;
+          }
+        } catch (error) {
+          console.error(error);
+        }
       }
-    })
-</script>
-</body>
+      async function request(url, method = "GET", data = null, headers = {}) {
+        const base = "http://localhost:7001";
+        return await http(`${base}/${url}`, method, data, headers);
+      }
+    </script>
+    <script>
+      const socket = new WebSocket("ws://localhost:7001/websocket");
+      socket.addEventListener("message", function (event) {
+        console.log("接收到服务器消息：" + event.data);
+        document.querySelector("#root").innerHTML += `<p>${event.data}</p>`;
+      });
+
+      document.querySelector("#box").addEventListener("click", async (e) => {
+        const idx = e.target.getAttribute("attr");
+        let config = [];
+        if (idx == 1) {
+          config = ["test"];
+        } else if (idx == 2) {
+          config = ["new", "POST"];
+        } else if (idx == 3) {
+          config = ["api/list", "POST"];
+        } else if (idx == 4) {
+          config = ["api", "PUT"];
+        } else if (idx == 5) {
+          config = ["download", "POST"];
+        }
+
+        const data = await request(...config);
+        console.log(data);
+      });
+    </script>
+  </body>
 </html>
